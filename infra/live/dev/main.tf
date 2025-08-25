@@ -17,3 +17,14 @@ module "network" {
   source = "../modules/network"
   name = "lara-dev"
 }
+
+module "pr_events_queue" {
+  source = "../modules/sqs"
+
+  name = "lara-dev-pr-events"
+
+  tags = {
+    Project     = "lara"
+    Environment = "dev"
+  }
+}
