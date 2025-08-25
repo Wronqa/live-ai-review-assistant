@@ -33,3 +33,33 @@ resource "aws_route_table" "public" {
   }
   tags = merge(var.tags, { Name = "${var.name}-public-rt" })
 }
+
+resource "aws_route_table_association" "public_assoc" {
+  for_each       = aws_subnet.public
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_security_group" "ecs_tasks" {
+  name        = "${var.name}-ecs-sg"
+  description = "ECS tasks egress-only to HTTPS"
+  vpc_id      = aws_vpc.this.id
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.tags, { Name = "${var.name}-ecs-sg" })
+}
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.this.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_route_table.public.id]
+  tags              = merge(var.tags, { Name = "${var.name}-s3-endpoint" })
+}
+
