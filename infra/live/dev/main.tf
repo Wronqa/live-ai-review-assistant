@@ -12,3 +12,8 @@ provider "aws" {
     }
   }
 }
+
+module "network" {
+  source = "../modules/network"
+  name = "lara-dev"
+}
