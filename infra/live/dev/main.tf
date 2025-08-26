@@ -2,6 +2,7 @@ terraform {
   required_version = ">= 1.6"
   required_providers { 
     aws = { source = "hashicorp/aws", version = "~> 5.0" } 
+    archive = { source = "hashicorp/archive", version = "~> 2.4" }
   }
 }
 
@@ -45,3 +46,15 @@ module "secrets" {
   }
 }
 
+module "webhook_api" {
+  source = "../modules/webhook_api"
+
+  name              = "lara-dev-webhook"
+  env               = "dev"
+  lambda_source_dir = "${path.root}/../../../lambda/webhook"
+
+  tags = {
+    Project     = "lara"
+    Environment = "dev"
+  }
+}
