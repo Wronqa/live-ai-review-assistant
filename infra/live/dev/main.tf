@@ -1,6 +1,8 @@
 terraform {
   required_version = ">= 1.6"
-  required_providers { aws = { source = "hashicorp/aws", version = "~> 5.0" } }
+  required_providers { 
+    aws = { source = "hashicorp/aws", version = "~> 5.0" } 
+  }
 }
 
 provider "aws" {
@@ -28,3 +30,18 @@ module "pr_events_queue" {
     Environment = "dev"
   }
 }
+
+module "secrets" {
+  source = "../modules/secrets"
+
+  names = [
+    "lara/dev/github/webhook_secret",  
+    "lara/dev/github/token"          
+  ]
+
+  tags = {
+    Project     = "lara"
+    Environment = "dev"
+  }
+}
+
