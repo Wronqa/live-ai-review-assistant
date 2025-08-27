@@ -64,3 +64,14 @@ module "webhook_api" {
     Environment = "dev"
   }
 }
+
+module "review_worker_ecr" {
+  source = "../modules/ecr_repo"
+
+  name = "lara-dev-review-worker"
+
+  tags = {
+    Project     = "lara"
+    Environment = "dev"
+  }
+}
