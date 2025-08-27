@@ -53,6 +53,12 @@ module "webhook_api" {
   env               = "dev"
   lambda_source_dir = "${path.root}/../../../lambda/webhook"
 
+  webhook_secret_id = module.secrets.arns["lara/dev/github/webhook_secret"]
+  github_token_id   = module.secrets.arns["lara/dev/github/token"]
+
+  sqs_queue_arn = module.pr_events_queue.queue_arn
+  sqs_queue_url = module.pr_events_queue.queue_url
+
   tags = {
     Project     = "lara"
     Environment = "dev"
