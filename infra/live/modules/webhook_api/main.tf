@@ -43,6 +43,9 @@ resource "aws_lambda_function" "fn" {
   environment {
     variables = {
       APP_ENV = var.env
+      WEBHOOK_SECRET_ID= var.webhook_secret_id
+      GITHUB_TOKEN_ID  = var.github_token_id
+      PR_EVENTS_SQS_URL= var.sqs_queue_url
     }
   }
   tags = var.tags
@@ -57,7 +60,7 @@ resource "aws_apigatewayv2_api" "http" {
 resource "aws_apigatewayv2_integration" "int" {
   api_id                 = aws_apigatewayv2_api.http.id
   integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.fn.arn
+  integration_uri        = aws_lambda_function.fn.invoke_arn
   payload_format_version = "2.0"
 }
 
@@ -79,4 +82,49 @@ resource "aws_lambda_permission" "allow_apigw" {
   function_name = aws_lambda_function.fn.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+}
+
+data "aws_secretsmanager_secret" "webhook" { 
+  arn = var.webhook_secret_id 
+}
+
+data "aws_secretsmanager_secret" "token"   { 
+  arn = var.github_token_id   
+}
+
+resource "aws_iam_policy" "lambda_secrets_read" {
+  name   = "${var.name}-secrets-read"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect   = "Allow",
+      Action   = ["secretsmanager:GetSecretValue"],
+      Resource = [
+        data.aws_secretsmanager_secret.webhook.arn,
+        data.aws_secretsmanager_secret.token.arn
+      ]
+    }]
+  })
+}
+
+resource "aws_iam_policy" "lambda_sqs_send" {
+  name   = "${var.name}-sqs-send"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect   = "Allow",
+      Action   = ["sqs:SendMessage"],
+      Resource = [ var.sqs_queue_arn ]
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_secrets_read" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_secrets_read.arn
+}
+
+resource "aws_iam_role_policy_attachment" "attach_sqs_send" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_sqs_send.arn
 }
