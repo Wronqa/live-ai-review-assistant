@@ -10,26 +10,23 @@ provider "aws" {
   region = "eu-north-1"
   default_tags {
     tags = {
-      Project     = "lara"
-      Environment = "dev"
+      Project     = local.project
+      Environment = local.env
     }
   }
 }
 
 module "network" {
   source = "../modules/network"
-  name = "lara-dev"
+  name = "${local.name_prefix}"
 }
 
 module "pr_events_queue" {
   source = "../modules/sqs"
 
-  name = "lara-dev-pr-events"
+  name =  "${local.name_prefix}-pr-events"
 
-  tags = {
-    Project     = "lara"
-    Environment = "dev"
-  }
+  tags = local.tags
 }
 
 module "secrets" {
@@ -40,17 +37,14 @@ module "secrets" {
     "lara/dev/github/token"          
   ]
 
-  tags = {
-    Project     = "lara"
-    Environment = "dev"
-  }
+  tags = local.tags
 }
 
 module "webhook_api" {
   source = "../modules/webhook_api"
 
-  name              = "lara-dev-webhook"
-  env               = "dev"
+  name = "${local.name_prefix}-webhook"
+  env               = local.env
   lambda_source_dir = "${path.root}/../../../lambda/webhook"
 
   webhook_secret_id = module.secrets.arns["lara/dev/github/webhook_secret"]
@@ -59,19 +53,13 @@ module "webhook_api" {
   sqs_queue_arn = module.pr_events_queue.queue_arn
   sqs_queue_url = module.pr_events_queue.queue_url
 
-  tags = {
-    Project     = "lara"
-    Environment = "dev"
-  }
+  tags = local.tags
 }
 
 module "review_worker_ecr" {
   source = "../modules/ecr_repo"
 
-  name = "lara-dev-review-worker"
+  name = "${local.name_prefix}-review-worker"
 
-  tags = {
-    Project     = "lara"
-    Environment = "dev"
-  }
+  tags = local.tags
 }
