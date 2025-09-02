@@ -6,4 +6,5 @@ locals {
     Project     = local.project
     Environment = local.env
   }
+  review_worker_image = "${module.review_worker_ecr.repository_url}:dev"
 }
