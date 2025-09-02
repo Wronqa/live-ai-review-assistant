@@ -63,3 +63,42 @@ module "review_worker_ecr" {
 
   tags = local.tags
 }
+
+module "ecs_review_worker" {
+  source = "../modules/ecs_task"
+
+  name           = "${local.name_prefix}-review-worker"
+  image          = local.review_worker_image
+
+  subnet_ids     = module.network.public_subnet_ids
+  security_group = module.network.ecs_sg_id
+
+  cpu    = 256
+  memory = 512
+
+  env = {
+    APP_ENV   = local.env
+    LOG_LEVEL = "WARNING"
+  }
+
+  tags = local.tags
+}
+
+module "sqs_dispatcher" {
+  source = "../modules/sqs_dispatcher"
+
+  name            = "${local.name_prefix}-sqs-dispatcher"
+  lambda_src_dir  = "${path.root}/../../../lambda/dispatcher"
+
+  queue_arn       = module.pr_events_queue.queue_arn
+  queue_url       = module.pr_events_queue.queue_url
+
+  cluster_arn        = module.ecs_review_worker.cluster_arn
+  task_def_arn       = module.ecs_review_worker.task_definition_arn
+  subnet_ids         = module.ecs_review_worker.subnet_ids
+  security_group     = module.ecs_review_worker.security_group
+  task_role_arn      = module.ecs_review_worker.task_role_arn
+  execution_role_arn = module.ecs_review_worker.execution_role_arn
+
+  tags = local.tags
+}
