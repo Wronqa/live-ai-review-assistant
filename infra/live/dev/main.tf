@@ -73,12 +73,15 @@ module "ecs_review_worker" {
   subnet_ids     = module.network.public_subnet_ids
   security_group = module.network.ecs_sg_id
 
-  cpu    = 256
-  memory = 512
+  cpu    = 1024
+  memory = 2048
 
   env = {
     APP_ENV   = local.env
     LOG_LEVEL = "WARNING"
+    GITHUB_TOKEN_SECRET_ID     = "lara/dev/github/token"
+    GITHUB_API_BASE            = "https://api.github.com"
+    GITHUB_USER_AGENT          = "lara-review-worker"
   }
 
   tags = local.tags
@@ -101,4 +104,16 @@ module "sqs_dispatcher" {
   execution_role_arn = module.ecs_review_worker.execution_role_arn
 
   tags = local.tags
+}
+
+data "aws_secretsmanager_secret" "gh_token" {
+  name = "lara/dev/github/token"
+}
+
+module "review_worker_secret_access" {
+  source      = "../modules/task_secret_access"
+  name        = "${local.name_prefix}-review-worker"
+  role_name   = module.ecs_review_worker.task_role_name
+  secret_arns = [ data.aws_secretsmanager_secret.gh_token.arn ]
+  tags        = local.tags
 }
