@@ -4,3 +4,6 @@ output "task_role_arn"       { value = aws_iam_role.task_role.arn }
 output "execution_role_arn"  { value = aws_iam_role.execution_role.arn }
 output "subnet_ids"          { value = var.subnet_ids }
 output "security_group"      { value = var.security_group }
+output "task_role_name" {
+  value = aws_iam_role.task_role.name
+}
