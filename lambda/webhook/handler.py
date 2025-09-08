@@ -14,6 +14,10 @@ _sqs = boto3.client("sqs")
 try:
     WEBHOOK_SECRET_ID = os.environ["WEBHOOK_SECRET_ID"]
     PR_EVENTS_SQS_URL = os.environ["PR_EVENTS_SQS_URL"]
+    ALLOWED_PR_ACTIONS = set(a.strip() for a in os.environ.get(
+        "ALLOWED_PR_ACTIONS",
+        "opened,reopened,synchronize,ready_for_review,edited"
+    ).split(","))   
 except KeyError as exc:
     raise RuntimeError(f"Missing required environment variable: {exc.args[0]}")
 
@@ -145,12 +149,24 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         p = json.loads(raw_body.decode("utf-8"))
     except Exception:
         return _resp(400, {"ok": False, "error": "invalid_json"})
+    
+
 
     action = p.get("action")
+    pr = p.get("pull_request") or {}
+    state  = pr.get("state", "")    
+
+    if action not in ALLOWED_PR_ACTIONS:
+        return _resp(204, {"ignored": True, "reason": f"action_not_allowed:{action}"})
+    if state != "open":
+        return _resp(204, {"ignored": True, "reason": f"state:{state}"})
+    if pr.get("draft", False):
+        return _resp(204, {"ignored": True, "reason": "draft_pr"})
+
+
     repo = p.get("repository") or {}
     owner = (repo.get("owner") or {}).get("login")
     name = repo.get("name")
-    pr = p.get("pull_request") or {}
     prnum = pr.get("number")
 
     missing = [k for k, v in [("action", action), ("owner", owner), ("repo", name), ("pr_number", prnum)] if not v]
