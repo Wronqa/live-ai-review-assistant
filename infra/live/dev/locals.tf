@@ -26,5 +26,7 @@ locals {
   review_sqs         = local.sqs_cfg["review_sqs"]
   pr_events_sqs      = local.sqs_cfg["pr_events_sqs"]
 
+  artifacts_bucket_config = var.artifacts_bucket_config
+
   ecs_worker_task    = var.ecs_worker_task
 }
