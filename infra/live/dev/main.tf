@@ -22,9 +22,21 @@ module "network" {
 }
 
 module "pr_events_queue" {
-  source = "../modules/sqs"
+  source = "../modules/pr_events_sqs"
 
   name =  "${local.name_prefix}-pr-events"
+
+  fifo_queue                  = local.pr_events_sqs.fifo_queue
+  content_based_deduplication = local.pr_events_sqs.content_based_deduplication
+
+  visibility_timeout_seconds      = local.pr_events_sqs.visibility_timeout_seconds
+  message_retention_seconds       = local.pr_events_sqs.message_retention_seconds
+  dlq_message_retention_seconds   = local.pr_events_sqs.dlq_message_retention_seconds
+  dlq_visibility_timeout_seconds  = local.pr_events_sqs.dlq_visibility_timeout_seconds
+  delay_seconds                   = local.pr_events_sqs.delay_seconds
+  receive_wait_time_seconds       = local.pr_events_sqs.receive_wait_time_seconds
+  max_message_size                = local.pr_events_sqs.max_message_size
+  max_receive_count               = local.pr_events_sqs.max_receive_count
 
   tags = local.tags
 }
