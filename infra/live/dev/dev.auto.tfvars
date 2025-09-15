@@ -64,3 +64,11 @@ artifacts_bucket_config = {
   sse_algorithm   = "AES256"
   kms_key_id      = null
 }
+
+ddb = {
+  pk_attribute    = "pk"
+  ttl_enabled     = true
+  ttl_attribute   = "ttl"
+  pitr_enabled    = true
+  sse_enabled     = true         
+}
