@@ -1,50 +1,75 @@
 data "archive_file" "zip" {
   type        = "zip"
   source_dir  = var.lambda_source_dir
-  output_path = "${path.module}/.tmp/${var.name}.zip"
+  output_path = local.zip_output_path
+}
+
+resource "aws_cloudwatch_log_group" "lambda_lg" {
+  name              = "/aws/lambda/${local.name}"
+  retention_in_days = var.log_retention_days
+  tags = local.tags
+}
+
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
 }
 
 resource "aws_iam_role" "lambda_role" {
-  name               = "${var.name}-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17", Statement = [{
-      Effect = "Allow", Principal = { Service = "lambda.amazonaws.com" }, Action = "sts:AssumeRole"
-    }]
-  })
-  tags = var.tags
+  name               = "${local.name}-role"
+  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+  tags               = var.tags
 }
 
-resource "aws_iam_policy" "lambda_basic_logs" {
-  name   = "${var.name}-basic-logs"
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Action = ["logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents"],
-      Resource = "*"
-    }]
-  })
+data "aws_iam_policy_document" "logs" {
+  statement {
+    effect  = "Allow"
+    actions = ["logs:CreateLogStream", "logs:PutLogEvents"]
+     resources = [
+      "${aws_cloudwatch_log_group.lambda_lg.arn}:*"
+    ]
+  }
+
+  statement {
+    sid     = "CreateLogGroup"
+    effect  = "Allow"
+    actions = ["logs:CreateLogGroup"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "logs" {
+  name   = "${local.name}-logs"
+  policy = data.aws_iam_policy_document.logs.json
 }
 
 resource "aws_iam_role_policy_attachment" "attach_logs" {
   role       = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.lambda_basic_logs.arn
+  policy_arn = aws_iam_policy.logs.arn
 }
 
 resource "aws_lambda_function" "fn" {
-  function_name    = var.name
+  function_name    = local.name
   role             = aws_iam_role.lambda_role.arn
-  handler          = "handler.lambda_handler"
-  runtime          = "python3.11"
+  handler          = var.lambda_handler
+  runtime          = var.lambda_runtime
+
   filename         = data.archive_file.zip.output_path
   source_code_hash = data.archive_file.zip.output_base64sha256
+
   memory_size      = var.memory_size
   timeout          = var.timeout
+
+  reserved_concurrent_executions = var.reserved_concurrent_executions
+
   environment {
     variables = {
-      APP_ENV = var.env
-      WEBHOOK_SECRET_ID= var.webhook_secret_id
-      GITHUB_TOKEN_ID  = var.github_token_id
+      WEBHOOK_SECRET_ARN= var.webhook_secret_arn
       PR_EVENTS_SQS_URL= var.sqs_queue_url
     }
   }
@@ -52,7 +77,7 @@ resource "aws_lambda_function" "fn" {
 }
 
 resource "aws_apigatewayv2_api" "http" {
-  name          = "${var.name}-httpapi"
+  name          = "${local.name}-httpapi"
   protocol_type = "HTTP"
   tags          = var.tags
 }
@@ -74,6 +99,27 @@ resource "aws_apigatewayv2_stage" "stage" {
   api_id      = aws_apigatewayv2_api.http.id
   name        = "$default"
   auto_deploy = true
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.apigw_access_lg.arn
+    format          = jsonencode({
+      requestId = "$context.requestId",
+      ip        = "$context.identity.sourceIp",
+      requestTime = "$context.requestTime",
+      httpMethod  = "$context.httpMethod",
+      path        = "$context.path",
+      status      = "$context.status",
+      protocol    = "$context.protocol",
+      responseLength = "$context.responseLength",
+      integrationError = "$context.integrationErrorMessage"
+    })
+  }
+}
+
+resource "aws_cloudwatch_log_group" "apigw_access_lg" {
+  name              = "/aws/apigw/${local.name}"
+  retention_in_days = var.log_retention_days
+  tags              = var.tags
 }
 
 resource "aws_lambda_permission" "allow_apigw" {
@@ -84,47 +130,20 @@ resource "aws_lambda_permission" "allow_apigw" {
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
 }
 
-data "aws_secretsmanager_secret" "webhook" { 
-  arn = var.webhook_secret_id 
+data "aws_iam_policy_document" "sqs_send" {
+  statement {
+    effect  = "Allow"
+    actions = ["sqs:SendMessage"]
+    resources = [var.sqs_queue_arn]
+  }
 }
 
-data "aws_secretsmanager_secret" "token"   { 
-  arn = var.github_token_id   
+resource "aws_iam_policy" "sqs_send" {
+  name   = "${local.name}-sqs-send"
+  policy = data.aws_iam_policy_document.sqs_send.json
 }
 
-resource "aws_iam_policy" "lambda_secrets_read" {
-  name   = "${var.name}-secrets-read"
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect   = "Allow",
-      Action   = ["secretsmanager:GetSecretValue"],
-      Resource = [
-        data.aws_secretsmanager_secret.webhook.arn,
-        data.aws_secretsmanager_secret.token.arn
-      ]
-    }]
-  })
-}
-
-resource "aws_iam_policy" "lambda_sqs_send" {
-  name   = "${var.name}-sqs-send"
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect   = "Allow",
-      Action   = ["sqs:SendMessage"],
-      Resource = [ var.sqs_queue_arn ]
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "attach_secrets_read" {
+resource "aws_iam_role_policy_attachment" "sqs_send_attach" {
   role       = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.lambda_secrets_read.arn
-}
-
-resource "aws_iam_role_policy_attachment" "attach_sqs_send" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.lambda_sqs_send.arn
+  policy_arn = aws_iam_policy.sqs_send.arn
 }
