@@ -216,12 +216,15 @@ module "review_worker_secret_access" {
 module "artifacts" {
   source         = "../modules/s3_artifacts"
   name_prefix    = "${local.name_prefix}-artifacts"
-  transition_days = 30
-  versioning     = false
+
+  transition_days = local.artifacts_bucket_config.transition_days
+  versioning      = local.artifacts_bucket_config.versioning
+  force_destroy   = local.artifacts_bucket_config.force_destroy
+  sse_algorithm   = local.artifacts_bucket_config.sse_algorithm
+  kms_key_id      = local.artifacts_bucket_config.kms_key_id
+
   tags           = local.tags
 
-  force_destroy = var.force_destroy
-  sse_algorithm = var.sse_algorithm
 }
 
 module "idem" {
