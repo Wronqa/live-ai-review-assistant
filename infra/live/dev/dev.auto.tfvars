@@ -56,3 +56,11 @@ ecs_worker_task = {
   use_fargate_spot          = true
   enable_container_insights = true
 }
+
+artifacts_bucket_config = {
+  transition_days = 30
+  versioning      = false
+  force_destroy   = true
+  sse_algorithm   = "AES256"
+  kms_key_id      = null
+}
