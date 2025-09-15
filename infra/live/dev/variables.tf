@@ -170,3 +170,14 @@ variable "artifacts_bucket_config" {
     kms_key_id      = null
   }
 }
+
+variable "ddb" {
+  description = "DynamoDB table configuration (override per environment in *.auto.tfvars)."
+  type = object({
+    pk_attribute    = optional(string, "pk")
+    ttl_attribute   = optional(string, "ttl")
+    ttl_enabled     = optional(bool,   false)
+    sse_enabled     = optional(bool,   true)
+    pitr_enabled    = optional(bool,   true)
+  })
+}
