@@ -1,17 +1,20 @@
 data "aws_region" "current" {}
 
 resource "aws_ecs_cluster" "this" {
-  name = "${var.name}-cluster"
-  setting { 
-    name = "containerInsights"
-    value = "enabled" 
+  name = local.cluster_name
+
+  setting {
+    name  = "containerInsights"
+    value = var.enable_container_insights ? "enabled" : "disabled"
   }
-  tags = var.tags
+
+  tags = local.tags
 }
 
 resource "aws_ecs_cluster_capacity_providers" "this" {
   cluster_name       = aws_ecs_cluster.this.name
-  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+   capacity_providers = var.use_fargate_spot ? ["FARGATE", "FARGATE_SPOT"] : ["FARGATE"]
 
   default_capacity_provider_strategy {
     capacity_provider = "FARGATE"
@@ -21,18 +24,25 @@ resource "aws_ecs_cluster_capacity_providers" "this" {
 }
 
 resource "aws_cloudwatch_log_group" "lg" {
-  name              = "/ecs/${var.name}"
+  name              = local.log_group_name
   retention_in_days = 7
-  tags = var.tags
+  tags = local.tags
+}
+
+data "aws_iam_policy_document" "exec_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+       type = "Service" 
+       identifiers = ["ecs-tasks.amazonaws.com"] 
+    }
+  }
 }
 
 resource "aws_iam_role" "execution_role" {
-  name = "${var.name}-exec-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{ Effect="Allow", Principal={ Service="ecs-tasks.amazonaws.com" }, Action="sts:AssumeRole" }]
-  })
-  tags = var.tags
+  name               = "${local.name}-exec-role"
+  assume_role_policy = data.aws_iam_policy_document.exec_assume.json
+  tags               = local.tags
 }
 
 resource "aws_iam_role_policy_attachment" "exec_attach" {
@@ -41,13 +51,32 @@ resource "aws_iam_role_policy_attachment" "exec_attach" {
 }
 
 resource "aws_iam_role" "task_role" {
-  name = "${var.name}-task-role"
+  name = local.task_role_name
   assume_role_policy = aws_iam_role.execution_role.assume_role_policy
-  tags = var.tags
+  tags = local.tags
+}
+
+data "aws_iam_policy_document" "task_s3" {
+  statement {
+    sid    = "AllowReadArtifacts"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject"
+    ]
+    resources = [
+      "${var.artifact_bucket_arn}/*"  
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "task_s3" {
+  name   = local.task_s3_policy_name
+  role   = aws_iam_role.task_role.id
+  policy = data.aws_iam_policy_document.task_s3.json
 }
 
 resource "aws_ecs_task_definition" "td" {
-  family                   = "${var.name}-td"
+  family                   = local.task_family
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu
@@ -63,8 +92,10 @@ resource "aws_ecs_task_definition" "td" {
       essential = true,
       environment = concat(
         [
-          { name = "APP_ENV",   value = "dev" },
-          { name = "LOG_LEVEL", value = "WARNING" }
+          {"name":"LOG_LEVEL","value":"INFO"},
+          {"name":"MAX_BODY_CHARS","value":"250"},
+          {"name":"IDEMPOTENCY","value":"true"},
+          {"name":"MARKER_PREFIX","value":"lara"}
         ],
         [
           for k, v in var.env : { name = k, value = v }
