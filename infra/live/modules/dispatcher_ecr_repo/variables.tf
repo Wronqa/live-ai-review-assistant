@@ -23,7 +23,7 @@ variable "scan_on_push" {
 
 variable "encryption_type" {
   type        = string
-  default     = "KMS"
+  default     = "AES256"
   description = "Encryption type for the repository. Allowed values: AES256 or KMS."
 }
 
