@@ -28,5 +28,7 @@ locals {
 
   artifacts_bucket_config = var.artifacts_bucket_config
 
+  ddb_cfg = var.ddb
+
   ecs_worker_task    = var.ecs_worker_task
 }
