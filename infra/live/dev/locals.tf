@@ -24,7 +24,7 @@ locals {
   worker_ecr         = local.ecr_cfg["worker_ecr"]
 
   review_sqs         = local.sqs_cfg["review_sqs"]
-  pr_events_sqs             = local.sqs_cfg["pr_events_sqs"]
+  pr_events_sqs      = local.sqs_cfg["pr_events_sqs"]
 
   ecs_worker_task    = var.ecs_worker_task
 }
