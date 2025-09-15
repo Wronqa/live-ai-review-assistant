@@ -230,11 +230,15 @@ module "artifacts" {
 module "idem" {
   source        = "../modules/dynamodb_idempotency"
   table_name    = "${local.name_prefix}-idem"
-  pk_attribute  = "pk"
-  ttl_attribute = "ttl"
+
+  pk_attribute    = local.ddb_cfg.pk_attribute
+  ttl_enabled     = local.ddb_cfg.ttl_enabled
+  ttl_attribute   = local.ddb_cfg.ttl_attribute
+  pitr_enabled    = local.ddb_cfg.pitr_enabled
+  sse_enabled     = local.ddb_cfg.sse_enabled         
+
   tags          = local.tags
 
-  pitr_enabled = var.pitr_enabled
 }
 
 module "pipe_review_to_ecs" {
