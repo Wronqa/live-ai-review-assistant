@@ -3,11 +3,6 @@ variable "name" {
   description = "Logical name prefix used for Lambda function and related resources."
 }
 
-variable "lambda_src_dir" {
-  type        = string
-  description = "Path to the source code directory or Docker build context for the Lambda function."
-}
-
 variable "queue_arn" {
   type        = string
   description = "ARN of the source SQS queue triggering the Lambda."
