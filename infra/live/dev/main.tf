@@ -29,6 +29,26 @@ module "pr_events_queue" {
   tags = local.tags
 }
 
+module "review_queue" {
+  source = "../modules/review_sqs"
+
+  name =  "${local.name_prefix}-review-events"
+
+  fifo_queue                  = local.review_sqs.fifo_queue
+  content_based_deduplication = local.review_sqs.content_based_deduplication
+
+  visibility_timeout_seconds      = local.review_sqs.visibility_timeout_seconds
+  message_retention_seconds       = local.review_sqs.message_retention_seconds
+  dlq_message_retention_seconds   = local.review_sqs.dlq_message_retention_seconds
+  dlq_visibility_timeout_seconds  = local.review_sqs.dlq_visibility_timeout_seconds
+  delay_seconds                   = local.review_sqs.delay_seconds
+  receive_wait_time_seconds       = local.review_sqs.receive_wait_time_seconds
+  max_message_size                = local.review_sqs.max_message_size
+  max_receive_count               = local.review_sqs.max_receive_count
+
+  tags = local.tags
+}
+
 module "secrets" {
   source = "../modules/secrets"
 
@@ -44,11 +64,13 @@ module "webhook_api" {
   source = "../modules/webhook_api"
 
   name = "${local.name_prefix}-webhook"
-  env               = local.env
-  lambda_source_dir = "${path.root}/../../../lambda/webhook"
+  lambda_source_dir = "${path.root}/../../../app/webhook"
 
-  webhook_secret_id = module.secrets.arns["lara/dev/github/webhook_secret"]
-  github_token_id   = module.secrets.arns["lara/dev/github/token"]
+  webhook_secret_arn = module.secrets.arns["lara/dev/github/webhook_secret"]
+
+  memory_size = var.memory_size
+  timeout = var.timeout
+  log_retention_days = var.log_retention_days
 
   sqs_queue_arn = module.pr_events_queue.queue_arn
   sqs_queue_url = module.pr_events_queue.queue_url
@@ -56,10 +78,42 @@ module "webhook_api" {
   tags = local.tags
 }
 
+module "sm_read_webhook" {
+  source      = "../modules/policy_sm_read"
+  name        = "${local.name_prefix}-sm-read-webhook"
+  secret_arns = [module.secrets.arns["lara/dev/github/token"], module.secrets.arns["lara/dev/github/webhook_secret"]]
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "attach_sm_read_webhook" {
+  role       = module.webhook_api.role_name
+  policy_arn = module.sm_read_webhook.arn
+}
+
+module "dispatcher_ecr" {
+  source = "../modules/dispatcher_ecr_repo"
+
+  name = "${local.name_prefix}-review-dispatcher"
+
+  image_tag_mutability       = local.dispatcher_ecr.image_tag_mutability
+  scan_on_push               = local.dispatcher_ecr.scan_on_push
+  encryption_type            = local.dispatcher_ecr.encryption_type
+  kms_key_arn                = local.dispatcher_ecr.kms_key_arn
+  force_delete               = local.dispatcher_ecr.force_delete
+
+  tags = local.tags
+}
+
 module "review_worker_ecr" {
-  source = "../modules/ecr_repo"
+  source = "../modules/worker_ecr_repo"
 
   name = "${local.name_prefix}-review-worker"
+
+  image_tag_mutability       = local.worker_ecr.image_tag_mutability
+  scan_on_push               = local.worker_ecr.scan_on_push
+  encryption_type            = local.worker_ecr.encryption_type
+  kms_key_arn                = local.worker_ecr.kms_key_arn
+  force_delete               = local.worker_ecr.force_delete
 
   tags = local.tags
 }
@@ -70,16 +124,15 @@ module "ecs_review_worker" {
   name           = "${local.name_prefix}-review-worker"
   image          = local.review_worker_image
 
-  subnet_ids     = module.network.public_subnet_ids
-  security_group = module.network.ecs_sg_id
+  artifact_bucket_arn = module.artifacts.bucket_arn
 
-  cpu    = 1024
-  memory = 2048
+  cpu    = local.ecs_worker_task.cpu
+  memory = local.ecs_worker_task.memory
 
   env = {
     APP_ENV   = local.env
     LOG_LEVEL = "WARNING"
-    GITHUB_TOKEN_SECRET_ID     = "lara/dev/github/token"
+    GITHUB_TOKEN_SECRET_ARN    = module.secrets.arns["lara/dev/github/token"]
     GITHUB_API_BASE            = "https://api.github.com"
     GITHUB_USER_AGENT          = "lara-review-worker"
   }
@@ -91,19 +144,49 @@ module "sqs_dispatcher" {
   source = "../modules/sqs_dispatcher"
 
   name            = "${local.name_prefix}-sqs-dispatcher"
-  lambda_src_dir  = "${path.root}/../../../lambda/dispatcher"
+
+  image           = local.dispatcher_image
 
   queue_arn       = module.pr_events_queue.queue_arn
   queue_url       = module.pr_events_queue.queue_url
 
+  review_queue_url = module.review_queue.queue_url
+  review_queue_arn = module.review_queue.queue_arn
+
   cluster_arn        = module.ecs_review_worker.cluster_arn
   task_def_arn       = module.ecs_review_worker.task_definition_arn
-  subnet_ids         = module.ecs_review_worker.subnet_ids
-  security_group     = module.ecs_review_worker.security_group
+  
   task_role_arn      = module.ecs_review_worker.task_role_arn
   execution_role_arn = module.ecs_review_worker.execution_role_arn
 
+  artifacts_bucket_name = module.artifacts.bucket_name
+  artifacts_bucket_arn = module.artifacts.bucket_arn
+
+  idem_table_name = module.idem.table_name
+  idem_table_arn  = module.idem.table_arn
+
+  github_token_arn   = module.secrets.arns["lara/dev/github/token"]
+
+  s3_put_sse_algorithm = var.sse_algorithm
+
+  batch_size = var.batch_size
+  max_batching_window_seconds = var.max_batching_window_seconds
+  max_concurrency = var.max_concurrency
+  lambda_timeout = var.lambda_timeout
+
   tags = local.tags
+}
+
+module "sm_read_dispatcher" {
+  source      = "../modules/policy_sm_read"
+  name        = "${local.name_prefix}-sm-read-dispatcher"
+  secret_arns = [module.secrets.arns["lara/dev/github/token"]]
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "attach_sm_read_dispatcher" {
+  role       = module.sqs_dispatcher.role_name
+  policy_arn = module.sm_read_dispatcher.arn
 }
 
 data "aws_secretsmanager_secret" "gh_token" {
@@ -116,4 +199,44 @@ module "review_worker_secret_access" {
   role_name   = module.ecs_review_worker.task_role_name
   secret_arns = [ data.aws_secretsmanager_secret.gh_token.arn ]
   tags        = local.tags
+}
+
+module "artifacts" {
+  source         = "../modules/s3_artifacts"
+  name_prefix    = "${local.name_prefix}-artifacts"
+  transition_days = 30
+  versioning     = false
+  tags           = local.tags
+
+  force_destroy = var.force_destroy
+  sse_algorithm = var.sse_algorithm
+}
+
+module "idem" {
+  source        = "../modules/dynamodb_idempotency"
+  table_name    = "${local.name_prefix}-idem"
+  pk_attribute  = "pk"
+  ttl_attribute = "ttl"
+  tags          = local.tags
+
+  pitr_enabled = var.pitr_enabled
+}
+
+module "pipe_review_to_ecs" {
+  source              = "../modules/pipes_sqs_to_ecs"
+
+  name                = "lara-dev-review-to-ecs"
+  source_queue_arn    = module.review_queue.queue_arn
+  cluster_arn         = module.ecs_review_worker.cluster_arn
+  task_definition_arn = module.ecs_review_worker.task_definition_arn
+  subnet_ids          = module.network.public_subnet_ids
+  security_group_ids  = [module.network.ecs_sg_id]
+
+  execution_role_arn = module.ecs_review_worker.execution_role_arn
+  task_role_arn = module.ecs_review_worker.task_role_arn
+
+  assign_public_ip    = true
+  batch_size          = 1
+  container_name      = module.ecs_review_worker.container_name
+  event_env_name      = "EVENT"
 }
