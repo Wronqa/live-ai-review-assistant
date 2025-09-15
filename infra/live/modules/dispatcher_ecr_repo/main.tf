@@ -1,5 +1,5 @@
 resource "aws_ecr_repository" "this" {
-  name                 = var.name
+  name                 = local.name
   image_tag_mutability = var.image_tag_mutability
 
   image_scanning_configuration {
@@ -13,7 +13,7 @@ resource "aws_ecr_repository" "this" {
 
   force_delete = var.force_delete
 
-  tags = var.tags
+  tags = local.tags
 }
 
 resource "aws_ecr_lifecycle_policy" "keep_last_10" {
