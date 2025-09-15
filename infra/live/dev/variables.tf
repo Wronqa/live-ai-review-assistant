@@ -151,3 +151,22 @@ variable "queues" {
   default     = {}
   description = "Per-queue overrides. Keys are logical names (e.g., review, pr)."
 }
+
+variable "artifacts_bucket_config" {
+  description = "S3 bucket configuration (defaults can be overridden per environment)."
+  type = object({
+    transition_days   = number
+    versioning        = bool
+    force_destroy     = bool
+    sse_algorithm     = string
+    kms_key_id        = string
+  })
+
+  default = {
+    transition_days = 30
+    versioning      = false
+    force_destroy   = false
+    sse_algorithm   = "AES256"
+    kms_key_id      = null
+  }
+}
