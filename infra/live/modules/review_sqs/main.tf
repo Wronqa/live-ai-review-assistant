@@ -9,7 +9,7 @@ resource "aws_sqs_queue" "dlq" {
   receive_wait_time_seconds   = 0
   max_message_size            = var.max_message_size
 
-  tags = local.tags
+  tags = merge(local.tags, { Name = "${local.name}-dlq", Component = "sqs-dlq" })
 }
 
 resource "aws_sqs_queue" "review" {
@@ -28,5 +28,7 @@ resource "aws_sqs_queue" "review" {
     maxReceiveCount     = var.max_receive_count
   })
 
-  tags = local.tags
+  tags = merge(local.tags, { Name = "${local.name}-review", Component = "sqs-review" })
 }
+
+
