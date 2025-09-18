@@ -19,7 +19,7 @@ TF = terraform -chdir=$(TF_DIR)
 
 SERVICE ?= worker
 
-REPO_URL  = "$(shell AWS_PROFILE=$(AWS_PROFILE) $(TF) output -raw $(SERVICE)_ecr_repository_url)"
+REPO_URL  = $(shell AWS_PROFILE=$(AWS_PROFILE) $(TF) output -raw $(SERVICE)_ecr_repository_url)
 ECR_HOST  = $(firstword $(subst /, ,$(REPO_URL)))
 AWS_REGION = $(word 4,$(subst ., ,$(ECR_HOST)))
 
