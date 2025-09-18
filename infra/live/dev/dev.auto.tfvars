@@ -13,9 +13,8 @@ timeout                      = 10
 reserved_concurrent_executions = 2
 log_retention_days           = 14
 
-
 ecr_defaults = {
-  image_tag_mutability       = "IMMUTABLE"
+  image_tag_mutability       = "MUTABLE"
   scan_on_push               = true
   encryption_type            = "AES256"
   kms_key_arn                = null
@@ -51,13 +50,14 @@ queues = {
 }
 
 ecs_worker_task = {
-  cpu                       = 1024
-  memory                    = 2048
+  cpu                       = 4096
+  memory                    = 30720
   use_fargate_spot          = true
   enable_container_insights = true
+  model_adapters_s3_arn     = "arn:aws:s3:::codegen-350m-finetune-adapters"
 }
 
-artifacts_bucket_config = {
+artifacts_bucket = {
   transition_days = 30
   versioning      = false
   force_destroy   = true
@@ -71,4 +71,32 @@ ddb = {
   ttl_attribute   = "ttl"
   pitr_enabled    = true
   sse_enabled     = true         
+}
+
+webhook_api_lambda = {
+  log_retention_days = 14
+  reserved_concurrent_executions = -1
+  lambda_runtime = "python3.11"
+  lambda_handler = "handler.lambda_handler"
+  timeout = 10
+  memory_size = 256
+}
+
+sqs_dispatcher_lambda = {
+  timeout = 20
+  max_concurrency = 2
+  max_batching_window_seconds = 1
+  batch_size = 5
+  s3_put_kms_key_arn = null
+  log_retention_days = 14
+}
+
+network = {
+  vpc_cidr = "10.42.0.0/16" 
+  azs = ["eu-north-1a", "eu-north-1b", "eu-north-1c"]
+}
+
+pipe_sqs_to_ecs = {
+  assign_public_ip = true
+  batch_size = 1
 }
