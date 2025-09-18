@@ -1,7 +1,8 @@
 resource "aws_cloudwatch_log_group" "lg" {
   name              = "/aws/lambda/${local.name}"
   retention_in_days = var.log_retention_days
-  tags = local.tags
+
+  tags = merge(local.tags, { Name = "${local.name}-log-group", Component = "logs" })
 }
 
 data "aws_iam_policy_document" "lambda_assume" {
@@ -18,7 +19,8 @@ data "aws_iam_policy_document" "lambda_assume" {
 resource "aws_iam_role" "role" {
   name               = "${local.name}-role"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
-  tags               = local.tags
+
+  tags = merge(local.tags, { Name = "${local.name}-role", Component = "iam-role" })
 }
 
 resource "aws_iam_role_policy_attachment" "logs" {
@@ -46,7 +48,8 @@ resource "aws_iam_policy" "sqs_consume" {
   name   = "${local.name}-sqs-consume"
   description = "Allow Lambda to consume messages from ${var.queue_arn}"
   policy = data.aws_iam_policy_document.sqs_consume.json
-  tags = local.tags
+
+  tags = merge(local.tags, { Name = "${local.name}-sqs-consume", Component = "iam-policy" })
 }
 
 data "aws_iam_policy_document" "sqs_produce" {
@@ -64,7 +67,8 @@ resource "aws_iam_policy" "sqs_produce" {
   name   = "${local.name}-sqs-produce"
   description = "Allow Lambda to send messages to ${var.review_queue_arn}"
   policy = data.aws_iam_policy_document.sqs_produce.json
-  tags = local.tags
+
+  tags = merge(local.tags, { Name = "${local.name}-sqs-consume", Component = "iam-policy" })
 }
 
 data "aws_iam_policy_document" "s3_put" {
@@ -95,7 +99,8 @@ resource "aws_iam_policy" "s3_put" {
   name   = "${local.name}-s3-put"
   description = "Allow Lambda to upload to ${var.artifacts_bucket_arn} with enforced SSE"
   policy = data.aws_iam_policy_document.s3_put.json
-  tags = local.tags
+
+  tags = merge(local.tags, { Name = "${local.name}-s3-put", Component = "iam-policy" })
 }
 
 data "aws_iam_policy_document" "dynamodb_put" {
@@ -110,7 +115,8 @@ resource "aws_iam_policy" "dynamodb_put" {
   name   = "${local.name}-dynamodb-put"
   description = "Allow Lambda to write idempotency records into ${var.idem_table_arn}"
   policy = data.aws_iam_policy_document.dynamodb_put.json
-  tags = local.tags
+
+  tags = merge(local.tags, { Name = "${local.name}-dynamodb-put", Component = "iam-policy" })
 }
 
 resource "aws_iam_role_policy_attachment" "attachments" {
@@ -159,7 +165,7 @@ resource "aws_lambda_function" "fn" {
     }
   }
 
-  tags = local.tags
+  tags = merge(local.tags, { Name = "${local.name}", Component = "lambda" })
 }
 
 resource "aws_lambda_event_source_mapping" "sqs" {
@@ -170,5 +176,7 @@ resource "aws_lambda_event_source_mapping" "sqs" {
   function_response_types            = ["ReportBatchItemFailures"]
   scaling_config { maximum_concurrency = var.max_concurrency }
 }
+
+
 
 
