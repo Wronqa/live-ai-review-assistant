@@ -7,7 +7,9 @@ data "archive_file" "zip" {
 resource "aws_cloudwatch_log_group" "lambda_lg" {
   name              = "/aws/lambda/${local.name}"
   retention_in_days = var.log_retention_days
-  tags = local.tags
+
+  tags = merge(local.tags, { Name = "${local.name}-logs-group", Component = "logs" })
+
 }
 
 data "aws_iam_policy_document" "assume_role" {
@@ -23,7 +25,8 @@ data "aws_iam_policy_document" "assume_role" {
 resource "aws_iam_role" "lambda_role" {
   name               = "${local.name}-role"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
-  tags               = var.tags
+
+  tags = merge(local.tags, { Name = "${local.name}-role", Component = "iam-role" })
 }
 
 data "aws_iam_policy_document" "logs" {
@@ -46,6 +49,8 @@ data "aws_iam_policy_document" "logs" {
 resource "aws_iam_policy" "logs" {
   name   = "${local.name}-logs"
   policy = data.aws_iam_policy_document.logs.json
+
+  tags = merge(local.tags, { Name = "${local.name}-logs", Component = "iam-policy" })
 }
 
 resource "aws_iam_role_policy_attachment" "attach_logs" {
@@ -73,7 +78,8 @@ resource "aws_lambda_function" "fn" {
       PR_EVENTS_SQS_URL= var.sqs_queue_url
     }
   }
-  tags = var.tags
+  
+  tags = merge(local.tags, { Name = "${local.name}", Component = "lambda" })
 }
 
 resource "aws_apigatewayv2_api" "http" {
@@ -114,6 +120,8 @@ resource "aws_apigatewayv2_stage" "stage" {
       integrationError = "$context.integrationErrorMessage"
     })
   }
+
+  tags = merge(local.tags, { Name = "${local.name}-stage", Component = "apigw-stage" })
 }
 
 resource "aws_cloudwatch_log_group" "apigw_access_lg" {
@@ -141,9 +149,16 @@ data "aws_iam_policy_document" "sqs_send" {
 resource "aws_iam_policy" "sqs_send" {
   name   = "${local.name}-sqs-send"
   policy = data.aws_iam_policy_document.sqs_send.json
+
+  tags = merge(local.tags, { Name = "${local.name}-sqs-send", Component = "iam-policy" })
 }
 
 resource "aws_iam_role_policy_attachment" "sqs_send_attach" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = aws_iam_policy.sqs_send.arn
 }
+
+
+
+
+
