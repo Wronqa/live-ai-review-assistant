@@ -26,5 +26,5 @@ resource "aws_dynamodb_table" "this" {
     } 
   }
 
-  tags = local.tags
+  tags = merge(local.tags, { Name = "${var.name}-dynamodb",  Component = "dynamodb" }) 
 }
