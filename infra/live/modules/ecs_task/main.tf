@@ -67,6 +67,16 @@ data "aws_iam_policy_document" "task_s3" {
       "${var.artifact_bucket_arn}/*"  
     ]
   }
+
+  statement {
+    sid    = "AllowReadAdapters"
+    effect = "Allow"
+    actions = ["s3:ListBucket", "s3:GetObject"]
+    resources = [
+      var.model_adapters_s3_arn,
+      "${var.model_adapters_s3_arn}/*"
+    ]
+  }
 }
 
 resource "aws_iam_role_policy" "task_s3" {
@@ -75,12 +85,15 @@ resource "aws_iam_role_policy" "task_s3" {
   policy = data.aws_iam_policy_document.task_s3.json
 }
 
+
+
 resource "aws_ecs_task_definition" "td" {
   family                   = local.task_family
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu
   memory                   = var.memory
+  ephemeral_storage { size_in_gib = 60 }
   execution_role_arn       = aws_iam_role.execution_role.arn
   task_role_arn            = aws_iam_role.task_role.arn
   runtime_platform { operating_system_family = "LINUX" }
@@ -95,7 +108,24 @@ resource "aws_ecs_task_definition" "td" {
           {"name":"LOG_LEVEL","value":"INFO"},
           {"name":"MAX_BODY_CHARS","value":"250"},
           {"name":"IDEMPOTENCY","value":"true"},
-          {"name":"MARKER_PREFIX","value":"lara"}
+          {"name":"MARKER_PREFIX","value":"lara"},
+
+          {"name":"MODEL_ID","value":"Salesforce/codegen-350M-multi"},
+          {"name":"MODEL_DIR","value":"/models"},
+          {"name":"GEN_MAX_NEW_TOKENS","value":"80"},
+          {"name":"GEN_TEMP","value":"0.2"},
+          {"name":"GEN_TOP_P","value":"0.9"},
+          {"name":"GEN_TOP_K","value":"50"},
+          {"name":"TRUNCATE_HUNK_CHARS","value":"600"},
+          {"name":"LORA_ADAPTER_DIR","value":"/models/adapters/codegen350m_lora"},
+          {"name":"ADAPTER_BUCKET","value":"codegen-350m-finetune-adapters"},
+          {"name":"HF_HUB_CACHE","value":"/models/.cache/huggingface"},
+
+          {"name":"TOKENIZERS_PARALLELISM","value":"false"},
+          {"name":"OMP_NUM_THREADS","value":"1"},
+          {"name":"MKL_NUM_THREADS","value":"1"},
+          {"name":"NUMEXPR_NUM_THREADS","value":"1"},
+          {"name":"HF_HUB_ENABLE_HF_TRANSFER","value":"0"}
         ],
         [
           for k, v in var.env : { name = k, value = v }
