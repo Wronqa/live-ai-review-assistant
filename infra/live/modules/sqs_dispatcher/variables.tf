@@ -123,7 +123,7 @@ variable "max_concurrency" {
   default     = 2
 }
 
-variable "lambda_timeout" {
+variable "timeout" {
   type        = number
   description = "Lambda timeout (seconds). Also used for calculating recommended SQS visibility timeout."
   default     = 20
