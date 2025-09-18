@@ -8,7 +8,9 @@ resource "aws_iam_policy" "secrets_read" {
       Resource = var.secret_arns
     }]
   })
-  tags = var.tags
+
+  tags = merge(local.tags, { Name = "${local.name}-secrets-read", Component = "iam-policy" })
+
 }
 
 resource "aws_iam_role_policy_attachment" "attach" {
