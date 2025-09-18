@@ -27,3 +27,8 @@ variable "task_role_arn"{
     type = string
 }
 
+variable "tags" {
+  description = "Common tags."
+  type        = map(string)
+  default     = {}
+}
