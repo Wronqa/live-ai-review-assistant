@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "this" {
-  name         = local.table_name
+  name         = local.name
   billing_mode = "PAY_PER_REQUEST"
 
   hash_key = var.pk_attribute
@@ -26,5 +26,5 @@ resource "aws_dynamodb_table" "this" {
     } 
   }
 
-  tags = merge(local.tags, { Name = "${var.name}-dynamodb",  Component = "dynamodb" }) 
+  tags = merge(local.tags, { Name = "${local.name}-dynamodb",  Component = "dynamodb" }) 
 }
