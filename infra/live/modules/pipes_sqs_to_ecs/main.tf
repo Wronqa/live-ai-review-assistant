@@ -11,8 +11,10 @@ data "aws_iam_policy_document" "assume" {
 }
 
 resource "aws_iam_role" "this" {
-  name               = "${var.name}-role"
+  name               = "${local.name}-role"
   assume_role_policy = data.aws_iam_policy_document.assume.json
+
+  tags = merge(local.tags, { Name = "${local.name}-role", Component = "iam-role" })
 }
 
 
@@ -74,7 +76,7 @@ resource "aws_iam_role_policy" "inline" {
 }
 
 resource "aws_pipes_pipe" "this" {
-  name     = var.name
+  name     = local.name
   role_arn = aws_iam_role.this.arn
 
   source = var.source_queue_arn
@@ -116,4 +118,7 @@ resource "aws_pipes_pipe" "this" {
   }
 
   desired_state = "RUNNING"
+
+  tags = merge(local.tags, { Name = "${local.name}-pipe", Component = "pipes" })
+
 }
