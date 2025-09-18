@@ -13,7 +13,7 @@ resource "aws_ecr_repository" "this" {
 
   force_delete = var.force_delete
 
-  tags = local.tags
+  tags = merge(local.tags, { Name = "${var.name}-ecr",  Component = "ecr" })
 }
 
 resource "aws_ecr_lifecycle_policy" "keep_last_10" {
