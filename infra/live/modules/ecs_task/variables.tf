@@ -66,3 +66,8 @@ variable "task_s3_policy_name" {
   default     = null
   description = "Custom name for the ECS task inline S3 policy. If null, defaults to <name>-task-s3-policy."
 }
+
+variable "model_adapters_s3_arn" {
+  type        = string
+  description = "ARN zasobu S3 (bucket lub prefix) zawierającego najnowsze LoRA adaptery modelu. Używane przez ECS task do pobierania adapterów w runtime."
+}
