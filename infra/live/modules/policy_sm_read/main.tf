@@ -24,7 +24,8 @@ data "aws_iam_policy_document" "this" {
 }
 
 resource "aws_iam_policy" "this" {
-  name   = var.name
+  name   = local.name
   policy = data.aws_iam_policy_document.this.json
-  tags   = var.tags
+
+  tags = merge(local.tags, { Name = "${local.name}-policy", Component = "iam-policy" })
 }
