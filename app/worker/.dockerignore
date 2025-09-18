@@ -1,0 +1,13 @@
+.git
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+dist/
+build/
+outputs/
+data/
+models/
+!models/adapters/
+!models/adapters/codegen350m_lora/**
