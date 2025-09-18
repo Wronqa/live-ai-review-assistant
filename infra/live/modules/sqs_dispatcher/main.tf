@@ -145,7 +145,7 @@ resource "aws_lambda_function" "fn" {
   role             = aws_iam_role.role.arn
   package_type     = "Image"
   image_uri        = var.image
-  timeout          = var.lambda_timeout
+  timeout          = var.timeout
   architectures = ["x86_64"]
 
   environment {
