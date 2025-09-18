@@ -20,15 +20,23 @@ locals {
     key => merge(var.sqs_defaults, override)
   }
 
-  dispatcher_ecr     = local.ecr_cfg["dispatcher_ecr"]
-  worker_ecr         = local.ecr_cfg["worker_ecr"]
+  dispatcher_ecr_cfg     = local.ecr_cfg["dispatcher_ecr"]
+  worker_ecr_cfg         = local.ecr_cfg["worker_ecr"]
 
-  review_sqs         = local.sqs_cfg["review_sqs"]
-  pr_events_sqs      = local.sqs_cfg["pr_events_sqs"]
+  review_sqs_cfg         = local.sqs_cfg["review_sqs"]
+  pr_events_sqs_cfg      = local.sqs_cfg["pr_events_sqs"]
 
-  artifacts_bucket_config = var.artifacts_bucket_config
+  artifacts_bucket_cfg = var.artifacts_bucket
 
   ddb_cfg = var.ddb
 
-  ecs_worker_task    = var.ecs_worker_task
+  ecs_worker_task_cfg    = var.ecs_worker_task
+
+  webhook_api_lambda_cfg = var.webhook_api_lambda
+
+  dispatcher_lambda_cfg = var.sqs_dispatcher_lambda
+
+  network_cfg = var.network
+
+  pipe_sqs_to_ecs_cfg = var.pipe_sqs_to_ecs
 }
