@@ -19,6 +19,9 @@ provider "aws" {
 module "network" {
   source = "../modules/network"
   name = "${local.name_prefix}"
+
+  azs = local.network_cfg.azs
+  vpc_cidr = local.network_cfg.vpc_cidr
 }
 
 module "pr_events_queue" {
@@ -26,17 +29,17 @@ module "pr_events_queue" {
 
   name =  "${local.name_prefix}-pr-events"
 
-  fifo_queue                  = local.pr_events_sqs.fifo_queue
-  content_based_deduplication = local.pr_events_sqs.content_based_deduplication
+  fifo_queue                  = local.pr_events_sqs_cfg.fifo_queue
+  content_based_deduplication = local.pr_events_sqs_cfg.content_based_deduplication
 
-  visibility_timeout_seconds      = local.pr_events_sqs.visibility_timeout_seconds
-  message_retention_seconds       = local.pr_events_sqs.message_retention_seconds
-  dlq_message_retention_seconds   = local.pr_events_sqs.dlq_message_retention_seconds
-  dlq_visibility_timeout_seconds  = local.pr_events_sqs.dlq_visibility_timeout_seconds
-  delay_seconds                   = local.pr_events_sqs.delay_seconds
-  receive_wait_time_seconds       = local.pr_events_sqs.receive_wait_time_seconds
-  max_message_size                = local.pr_events_sqs.max_message_size
-  max_receive_count               = local.pr_events_sqs.max_receive_count
+  visibility_timeout_seconds      = local.pr_events_sqs_cfg.visibility_timeout_seconds
+  message_retention_seconds       = local.pr_events_sqs_cfg.message_retention_seconds
+  dlq_message_retention_seconds   = local.pr_events_sqs_cfg.dlq_message_retention_seconds
+  dlq_visibility_timeout_seconds  = local.pr_events_sqs_cfg.dlq_visibility_timeout_seconds
+  delay_seconds                   = local.pr_events_sqs_cfg.delay_seconds
+  receive_wait_time_seconds       = local.pr_events_sqs_cfg.receive_wait_time_seconds
+  max_message_size                = local.pr_events_sqs_cfg.max_message_size
+  max_receive_count               = local.pr_events_sqs_cfg.max_receive_count
 
   tags = local.tags
 }
@@ -46,17 +49,17 @@ module "review_queue" {
 
   name =  "${local.name_prefix}-review-events"
 
-  fifo_queue                  = local.review_sqs.fifo_queue
-  content_based_deduplication = local.review_sqs.content_based_deduplication
+  fifo_queue                  = local.review_sqs_cfg.fifo_queue
+  content_based_deduplication = local.review_sqs_cfg.content_based_deduplication
 
-  visibility_timeout_seconds      = local.review_sqs.visibility_timeout_seconds
-  message_retention_seconds       = local.review_sqs.message_retention_seconds
-  dlq_message_retention_seconds   = local.review_sqs.dlq_message_retention_seconds
-  dlq_visibility_timeout_seconds  = local.review_sqs.dlq_visibility_timeout_seconds
-  delay_seconds                   = local.review_sqs.delay_seconds
-  receive_wait_time_seconds       = local.review_sqs.receive_wait_time_seconds
-  max_message_size                = local.review_sqs.max_message_size
-  max_receive_count               = local.review_sqs.max_receive_count
+  visibility_timeout_seconds      = local.review_sqs_cfg.visibility_timeout_seconds
+  message_retention_seconds       = local.review_sqs_cfg.message_retention_seconds
+  dlq_message_retention_seconds   = local.review_sqs_cfg.dlq_message_retention_seconds
+  dlq_visibility_timeout_seconds  = local.review_sqs_cfg.dlq_visibility_timeout_seconds
+  delay_seconds                   = local.review_sqs_cfg.delay_seconds
+  receive_wait_time_seconds       = local.review_sqs_cfg.receive_wait_time_seconds
+  max_message_size                = local.review_sqs_cfg.max_message_size
+  max_receive_count               = local.review_sqs_cfg.max_receive_count
 
   tags = local.tags
 }
@@ -80,9 +83,12 @@ module "webhook_api" {
 
   webhook_secret_arn = module.secrets.arns["lara/dev/github/webhook_secret"]
 
-  memory_size = var.memory_size
-  timeout = var.timeout
-  log_retention_days = var.log_retention_days
+  memory_size = local.webhook_api_lambda_cfg.memory_size
+  timeout = local.webhook_api_lambda_cfg.timeout
+  lambda_handler = local.webhook_api_lambda_cfg.lambda_handler
+  lambda_runtime = local.webhook_api_lambda_cfg.lambda_runtime
+  reserved_concurrent_executions = local.webhook_api_lambda_cfg.reserved_concurrent_executions
+  log_retention_days = local.webhook_api_lambda_cfg.log_retention_days
 
   sqs_queue_arn = module.pr_events_queue.queue_arn
   sqs_queue_url = module.pr_events_queue.queue_url
@@ -107,11 +113,11 @@ module "dispatcher_ecr" {
 
   name = "${local.name_prefix}-review-dispatcher"
 
-  image_tag_mutability       = local.dispatcher_ecr.image_tag_mutability
-  scan_on_push               = local.dispatcher_ecr.scan_on_push
-  encryption_type            = local.dispatcher_ecr.encryption_type
-  kms_key_arn                = local.dispatcher_ecr.kms_key_arn
-  force_delete               = local.dispatcher_ecr.force_delete
+  image_tag_mutability       = local.dispatcher_ecr_cfg.image_tag_mutability
+  scan_on_push               = local.dispatcher_ecr_cfg.scan_on_push
+  encryption_type            = local.dispatcher_ecr_cfg.encryption_type
+  kms_key_arn                = local.dispatcher_ecr_cfg.kms_key_arn
+  force_delete               = local.dispatcher_ecr_cfg.force_delete
 
   tags = local.tags
 }
@@ -121,11 +127,11 @@ module "review_worker_ecr" {
 
   name = "${local.name_prefix}-review-worker"
 
-  image_tag_mutability       = local.worker_ecr.image_tag_mutability
-  scan_on_push               = local.worker_ecr.scan_on_push
-  encryption_type            = local.worker_ecr.encryption_type
-  kms_key_arn                = local.worker_ecr.kms_key_arn
-  force_delete               = local.worker_ecr.force_delete
+  image_tag_mutability       = local.worker_ecr_cfg.image_tag_mutability
+  scan_on_push               = local.worker_ecr_cfg.scan_on_push
+  encryption_type            = local.worker_ecr_cfg.encryption_type
+  kms_key_arn                = local.worker_ecr_cfg.kms_key_arn
+  force_delete               = local.worker_ecr_cfg.force_delete
 
   tags = local.tags
 }
@@ -138,8 +144,9 @@ module "ecs_review_worker" {
 
   artifact_bucket_arn = module.artifacts.bucket_arn
 
-  cpu    = local.ecs_worker_task.cpu
-  memory = local.ecs_worker_task.memory
+  cpu    = local.ecs_worker_task_cfg.cpu
+  memory = local.ecs_worker_task_cfg.memory
+  model_adapters_s3_arn = local.ecs_worker_task_cfg.model_adapters_s3_arn
 
   env = {
     APP_ENV   = local.env
@@ -150,6 +157,18 @@ module "ecs_review_worker" {
   }
 
   tags = local.tags
+}
+
+module "sm_read_worker" {
+  source      = "../modules/policy_sm_read"
+  name        = "${local.name_prefix}-sm-read-worker"
+  secret_arns = [module.secrets.arns["lara/dev/github/token"], module.secrets.arns["lara/dev/github/webhook_secret"]]
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "attach_sm_read_worker" {
+  role       = module.ecs_review_worker.task_role_name
+  policy_arn = module.sm_read_worker.arn
 }
 
 module "sqs_dispatcher" {
@@ -179,12 +198,12 @@ module "sqs_dispatcher" {
 
   github_token_arn   = module.secrets.arns["lara/dev/github/token"]
 
-  s3_put_sse_algorithm = var.sse_algorithm
+  s3_put_sse_algorithm = local.artifacts_bucket_cfg.sse_algorithm
 
-  batch_size = var.batch_size
-  max_batching_window_seconds = var.max_batching_window_seconds
-  max_concurrency = var.max_concurrency
-  lambda_timeout = var.lambda_timeout
+  batch_size = local.dispatcher_lambda_cfg.batch_size
+  max_batching_window_seconds = local.dispatcher_lambda_cfg.max_batching_window_seconds
+  max_concurrency = local.dispatcher_lambda_cfg.max_concurrency
+  timeout = local.dispatcher_lambda_cfg.timeout
 
   tags = local.tags
 }
@@ -205,26 +224,17 @@ data "aws_secretsmanager_secret" "gh_token" {
   name = "lara/dev/github/token"
 }
 
-module "review_worker_secret_access" {
-  source      = "../modules/task_secret_access"
-  name        = "${local.name_prefix}-review-worker"
-  role_name   = module.ecs_review_worker.task_role_name
-  secret_arns = [ data.aws_secretsmanager_secret.gh_token.arn ]
-  tags        = local.tags
-}
-
 module "artifacts" {
   source         = "../modules/s3_artifacts"
   name_prefix    = "${local.name_prefix}-artifacts"
 
-  transition_days = local.artifacts_bucket_config.transition_days
-  versioning      = local.artifacts_bucket_config.versioning
-  force_destroy   = local.artifacts_bucket_config.force_destroy
-  sse_algorithm   = local.artifacts_bucket_config.sse_algorithm
-  kms_key_id      = local.artifacts_bucket_config.kms_key_id
+  transition_days = local.artifacts_bucket_cfg.transition_days
+  versioning      = local.artifacts_bucket_cfg.versioning
+  force_destroy   = local.artifacts_bucket_cfg.force_destroy
+  sse_algorithm   = local.artifacts_bucket_cfg.sse_algorithm
+  kms_key_id      = local.artifacts_bucket_cfg.kms_key_id
 
   tags           = local.tags
-
 }
 
 module "idem" {
@@ -238,7 +248,6 @@ module "idem" {
   sse_enabled     = local.ddb_cfg.sse_enabled         
 
   tags          = local.tags
-
 }
 
 module "pipe_review_to_ecs" {
@@ -254,8 +263,7 @@ module "pipe_review_to_ecs" {
   execution_role_arn = module.ecs_review_worker.execution_role_arn
   task_role_arn = module.ecs_review_worker.task_role_arn
 
-  assign_public_ip    = true
-  batch_size          = 1
+  assign_public_ip    = local.pipe_sqs_to_ecs_cfg.assign_public_ip
+  batch_size          = local.pipe_sqs_to_ecs_cfg.batch_size
   container_name      = module.ecs_review_worker.container_name
-  event_env_name      = "EVENT"
 }
