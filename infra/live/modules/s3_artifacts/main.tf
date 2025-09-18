@@ -4,7 +4,6 @@ resource "random_id" "suffix" {
 
 resource "aws_s3_bucket" "this" {
   bucket = local.name
-  tags   = local.tags
   force_destroy = var.force_destroy
 
   tags = merge(local.tags, { Name = "${local.name}-bucket", Component = "s3" })
