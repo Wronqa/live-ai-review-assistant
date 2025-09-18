@@ -4,12 +4,12 @@ resource "aws_vpc" "this" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = merge(var.tags, { Name = "${var.name}-vpc" })
+  tags = merge(local.tags, { Name = "${local.name}-vpc", Components = "vpc" })
 }
 
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.this.id
-  tags   = merge(var.tags, { Name = "${var.name}-igw" })
+  tags   = merge(local.tags, { Name = "${local.name}-igw", Component = "igw"})
 }
 
 resource "aws_subnet" "public" {
@@ -22,7 +22,7 @@ resource "aws_subnet" "public" {
   availability_zone       = each.value.az
   cidr_block              = each.value.cidr
   map_public_ip_on_launch = true
-  tags = merge(var.tags, { Name = "${var.name}-public-${each.key}" })
+  tags = merge(local.tags, { Name = "${local.name}-public-${each.key}",  Component = "subnet-public" })
 }
 
 resource "aws_route_table" "public" {
@@ -31,7 +31,7 @@ resource "aws_route_table" "public" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.igw.id
   }
-  tags = merge(var.tags, { Name = "${var.name}-public-rt" })
+  tags = merge(local.tags, { Name = "${local.name}-public-rt", Component = "route-table" })
 }
 
 resource "aws_route_table_association" "public_assoc" {
@@ -41,7 +41,7 @@ resource "aws_route_table_association" "public_assoc" {
 }
 
 resource "aws_security_group" "ecs_tasks" {
-  name        = "${var.name}-ecs-sg"
+  name        = "${local.name}-ecs-sg"
   description = "ECS tasks egress-only to HTTPS"
   vpc_id      = aws_vpc.this.id
 
@@ -52,7 +52,7 @@ resource "aws_security_group" "ecs_tasks" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = merge(var.tags, { Name = "${var.name}-ecs-sg" })
+  tags = merge(local.tags, { Name = "${local.name}-ecs-sg", Component = "security-group" })
 }
 
 resource "aws_vpc_endpoint" "s3" {
@@ -60,6 +60,6 @@ resource "aws_vpc_endpoint" "s3" {
   service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
   vpc_endpoint_type = "Gateway"
   route_table_ids   = [aws_route_table.public.id]
-  tags              = merge(var.tags, { Name = "${var.name}-s3-endpoint" })
+  tags              = merge(local.tags, { Name = "${local.name}-s3-endpoint", Component = "vpc-endpoint"})
 }
 
