@@ -8,7 +8,7 @@ resource "aws_ecs_cluster" "this" {
     value = var.enable_container_insights ? "enabled" : "disabled"
   }
 
-  tags = local.tags
+  tags = merge(local.tags, { Name = "${var.name}-cluster-name",  Component = "ecs-cluster" }) 
 }
 
 resource "aws_ecs_cluster_capacity_providers" "this" {
@@ -26,7 +26,8 @@ resource "aws_ecs_cluster_capacity_providers" "this" {
 resource "aws_cloudwatch_log_group" "lg" {
   name              = local.log_group_name
   retention_in_days = 7
-  tags = local.tags
+  
+  tags = merge(local.tags, { Name = "${var.name}-log-group",  Component = "logs" }) 
 }
 
 data "aws_iam_policy_document" "exec_assume" {
@@ -42,7 +43,8 @@ data "aws_iam_policy_document" "exec_assume" {
 resource "aws_iam_role" "execution_role" {
   name               = "${local.name}-exec-role"
   assume_role_policy = data.aws_iam_policy_document.exec_assume.json
-  tags               = local.tags
+
+  tags = merge(local.tags, { Name = "${var.name}-exec-role",  Component = "iam-exec-role" }) 
 }
 
 resource "aws_iam_role_policy_attachment" "exec_attach" {
@@ -53,7 +55,8 @@ resource "aws_iam_role_policy_attachment" "exec_attach" {
 resource "aws_iam_role" "task_role" {
   name = local.task_role_name
   assume_role_policy = aws_iam_role.execution_role.assume_role_policy
-  tags = local.tags
+
+  tags = merge(local.tags, { Name = "${var.name}-task-role",  Component = "task-role" }) 
 }
 
 data "aws_iam_policy_document" "task_s3" {
@@ -140,5 +143,8 @@ resource "aws_ecs_task_definition" "td" {
         }
       }
     }
+
   ])
+
+  tags = merge(local.tags, { Name = "${var.name}-task-definition",  Component = "ecs-taskdef" }) 
 }
