@@ -6,6 +6,8 @@ resource "aws_s3_bucket" "this" {
   bucket = local.name
   tags   = local.tags
   force_destroy = var.force_destroy
+
+  tags = merge(local.tags, { Name = "${local.name}-bucket", Component = "s3" })
 }
 
 resource "aws_s3_bucket_ownership_controls" "this" {
@@ -107,6 +109,3 @@ resource "aws_s3_bucket_policy" "secure" {
   bucket = aws_s3_bucket.this.id
   policy = data.aws_iam_policy_document.secure.json
 }
-
-
-
