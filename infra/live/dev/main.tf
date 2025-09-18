@@ -69,9 +69,11 @@ module "secrets" {
 
   names = [
     "lara/dev/github/webhook_secret",  
-    "lara/dev/github/token"          
+    "lara/dev/github/token",
+    "lara/dev/github/app/id",
+    "lara/dev/github/installation/id",
+    "lara/dev/github/app/token",          
   ]
-
   tags = local.tags
 }
 
@@ -151,9 +153,14 @@ module "ecs_review_worker" {
   env = {
     APP_ENV   = local.env
     LOG_LEVEL = "WARNING"
-    GITHUB_TOKEN_SECRET_ARN    = module.secrets.arns["lara/dev/github/token"]
+    GITHUB_TOKEN_SECRET_ARN              = module.secrets.arns["lara/dev/github/token"]
+    GITHUB_APP_ID                        = module.secrets.arns["lara/dev/github/app/id"]
+    GITHUB_APP_INSTALLATION_ID           = module.secrets.arns["lara/dev/github/installation/id"]
+    GITHUB_APP_PRIVATE_KEY_SECRET_ARN    = module.secrets.arns["lara/dev/github/app/token"]
+
     GITHUB_API_BASE            = "https://api.github.com"
     GITHUB_USER_AGENT          = "lara-review-worker"
+    
   }
 
   tags = local.tags
@@ -162,7 +169,13 @@ module "ecs_review_worker" {
 module "sm_read_worker" {
   source      = "../modules/policy_sm_read"
   name        = "${local.name_prefix}-sm-read-worker"
-  secret_arns = [module.secrets.arns["lara/dev/github/token"], module.secrets.arns["lara/dev/github/webhook_secret"]]
+  secret_arns = [
+    module.secrets.arns["lara/dev/github/token"], 
+    module.secrets.arns["lara/dev/github/webhook_secret"],
+    module.secrets.arns["lara/dev/github/app/id"],
+    module.secrets.arns["lara/dev/github/app/token"],
+    module.secrets.arns["lara/dev/github/installation/id"],
+  ]
   tags = local.tags
 }
 
