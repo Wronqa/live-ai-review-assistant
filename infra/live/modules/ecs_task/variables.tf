@@ -67,7 +67,23 @@ variable "task_s3_policy_name" {
   description = "Custom name for the ECS task inline S3 policy. If null, defaults to <name>-task-s3-policy."
 }
 
+variable "task_sqs_policy_name" {
+  type        = string
+  default     = null
+  description = "Custom name for the ECS task inline SQS policy. If null, defaults to <name>-task-sqs."
+}
+
 variable "model_adapters_s3_arn" {
   type        = string
   description = "ARN zasobu S3 (bucket lub prefix) zawierającego najnowsze LoRA adaptery modelu. Używane przez ECS task do pobierania adapterów w runtime."
+}
+
+variable "review_queue_url" {
+  type        = string
+  description = "URL of the SQS queue used for requeue"
+}
+
+variable "review_queue_arn" {
+  type        = string
+  description = "ARN of the SQS queue used for requeue"
 }
