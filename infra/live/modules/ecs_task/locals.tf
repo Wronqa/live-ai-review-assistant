@@ -7,4 +7,5 @@ locals {
   tags                 = merge(var.tags, { ManagedBy = "terraform" })
   task_role_name       = coalesce(var.task_role_name, "${local.name}-task-role")
   task_s3_policy_name  = coalesce(var.task_s3_policy_name, "${local.name}-task-s3-policy")
+  task_sqs_policy_name  = coalesce(var.task_sqs_policy_name, "${local.name}-task-sqs-policy")
 }
