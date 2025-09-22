@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir --upgrade pip wheel
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
+COPY . /app/worker
 
 RUN mkdir -p /models/.cache/huggingface
 
@@ -30,4 +30,4 @@ ENV MODEL_DIR=/models \
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD python -c "import transformers,peft" || exit 1
 
-CMD ["python", "main.py"]
+CMD ["python", "-m", "worker.main"]
