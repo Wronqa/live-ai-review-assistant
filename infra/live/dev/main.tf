@@ -150,12 +150,15 @@ module "ecs_review_worker" {
   memory = local.ecs_worker_task_cfg.memory
   model_adapters_s3_arn = local.ecs_worker_task_cfg.model_adapters_s3_arn
 
+  review_queue_url = module.review_queue.queue_url
+  review_queue_arn = module.review_queue.queue_arn
+
   env = {
     APP_ENV   = local.env
     LOG_LEVEL = "WARNING"
     GITHUB_TOKEN_SECRET_ARN              = module.secrets.arns["lara/dev/github/token"]
-    GITHUB_APP_ID                        = module.secrets.arns["lara/dev/github/app/id"]
-    GITHUB_APP_INSTALLATION_ID           = module.secrets.arns["lara/dev/github/installation/id"]
+    GITHUB_APP_ID_ARN                    = module.secrets.arns["lara/dev/github/app/id"]
+    GITHUB_APP_INSTALLATION_ID_ARN       = module.secrets.arns["lara/dev/github/installation/id"]
     GITHUB_APP_PRIVATE_KEY_SECRET_ARN    = module.secrets.arns["lara/dev/github/app/token"]
 
     GITHUB_API_BASE            = "https://api.github.com"
