@@ -78,12 +78,6 @@ variable "model_adapters_s3_arn" {
   description = "ARN zasobu S3 (bucket lub prefix) zawierającego najnowsze LoRA adaptery modelu. Używane przez ECS task do pobierania adapterów w runtime."
 }
 
-variable "review_queue_url" {
-  type        = string
-  description = "URL of the SQS queue used for requeue"
-}
 
-variable "review_queue_arn" {
-  type        = string
-  description = "ARN of the SQS queue used for requeue"
-}
+
+
