@@ -88,21 +88,6 @@ resource "aws_iam_role_policy" "task_s3" {
   policy = data.aws_iam_policy_document.task_s3.json
 }
 
-data "aws_iam_policy_document" "task_sqs" {
-  statement {
-    sid     = "AllowRequeue"
-    effect  = "Allow"
-    actions = ["sqs:ChangeMessageVisibility"]
-    resources = [var.review_queue_arn]
-  }
-}
-
-resource "aws_iam_role_policy" "task_sqs" {
-  name   = local.task_sqs_policy_name
-  role   = aws_iam_role.task_role.id
-  policy = data.aws_iam_policy_document.task_sqs.json
-}
-
 resource "aws_ecs_task_definition" "td" {
   family                   = local.task_family
   network_mode             = "awsvpc"
@@ -141,10 +126,7 @@ resource "aws_ecs_task_definition" "td" {
           {"name":"OMP_NUM_THREADS","value":"1"},
           {"name":"MKL_NUM_THREADS","value":"1"},
           {"name":"NUMEXPR_NUM_THREADS","value":"1"},
-          {"name":"HF_HUB_ENABLE_HF_TRANSFER","value":"0"},
-
-          { name = "SQS_QUEUE_URL", value = var.review_queue_url },
-          { name = "SQS_RECEIPT_HANDLE", value = "" }
+          {"name":"HF_HUB_ENABLE_HF_TRANSFER","value":"0"}
         ],
         [
           for k, v in var.env : { name = k, value = v }
