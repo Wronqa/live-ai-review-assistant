@@ -114,12 +114,19 @@ variable "network" {
   description = "Network configuration: VPC CIDR block, availability zones, and default tags."
 }
 
-variable "pipe_sqs_to_ecs" {
+variable "sfn_ecs_runner"{
   type = object({
     assign_public_ip = bool
+    send_to_dlq = bool
+  })
+}
+
+variable "pipe_sqs_to_sfn" {
+  type = object({
     batch_size       = number
   })
 
-  description = "Configuration for Lambda SQS integration: whether to assign a public IP and the batch size."
-
+  description = "Configuration for the SQS → Step Functions pipe, including batch size for messages polled from the source queue."
 }
+
+
