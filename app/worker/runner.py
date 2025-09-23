@@ -5,7 +5,7 @@ import os
 import json
 
 from .logutil import setup_logger
-from .aws_utils import download_latest_adapter_from_s3, load_hunks_from_s3, requeue_message_on_failure
+from .aws_utils import download_latest_adapter_from_s3, load_hunks_from_s3
 from .github_api import get_token
 from .review_logic import (
     existing_marker, create_summary, post_inline, limit_hunks, prepare_comments
@@ -14,6 +14,7 @@ from .review_logic import (
 log = setup_logger("runner")
 
 def handle_event(evt: Dict[str, Any]) -> None:
+    #raise RuntimeError("Forced failure for test (via payload)")
     owner = evt.get("owner")
     repo = evt.get("repo")
     pr = evt.get("pr_number")
@@ -71,5 +72,4 @@ def entrypoint() -> int:
         return 0
     except Exception as e:
         log.exception("Processing failed: %s", e)
-        requeue_message_on_failure()
         return 1

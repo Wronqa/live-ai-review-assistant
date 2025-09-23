@@ -28,8 +28,6 @@ ADAPTER_BUCKET = os.getenv("ADAPTER_BUCKET", "codegen-350m-finetune-adapters")
 LORA_ADAPTER_DIR = os.getenv("LORA_ADAPTER_DIR", "").strip() or "/models/adapters/latest"
 os.environ["LORA_ADAPTER_DIR"] = LORA_ADAPTER_DIR
 
-SQS_QUEUE_URL = os.getenv("SQS_QUEUE_URL")           
-SQS_RECEIPT_HANDLE = os.getenv("SQS_RECEIPT_HANDLE") 
 
 def utc_ts() -> int:
     return int(_dt.datetime.now(tz=_dt.timezone.utc).timestamp())

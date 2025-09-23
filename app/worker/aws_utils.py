@@ -8,7 +8,7 @@ import boto3
 from .logutil import setup_logger
 from .config import (
     ADAPTER_BUCKET, LORA_ADAPTER_DIR,
-    SQS_QUEUE_URL, SQS_RECEIPT_HANDLE,
+    
 )
 
 log = setup_logger("aws-utils")
@@ -95,14 +95,3 @@ def load_hunks_from_s3(bucket: str, key: str) -> List[Dict[str, Any]]:
         raise ValueError("Invalid artifact format: 'hunks' not a list")
     return hunks
 
-def requeue_message_on_failure() -> None:
-    if SQS_QUEUE_URL and SQS_RECEIPT_HANDLE:
-        try:
-            sqs.change_message_visibility(
-                QueueUrl=SQS_QUEUE_URL,
-                ReceiptHandle=SQS_RECEIPT_HANDLE,
-                VisibilityTimeout=0,
-            )
-            log.warning("Re-queued message via SQS ChangeMessageVisibility=0")
-        except Exception as e:
-            log.error("Failed to requeue SQS message: %s", e)
