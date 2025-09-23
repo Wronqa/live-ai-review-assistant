@@ -150,9 +150,6 @@ module "ecs_review_worker" {
   memory = local.ecs_worker_task_cfg.memory
   model_adapters_s3_arn = local.ecs_worker_task_cfg.model_adapters_s3_arn
 
-  review_queue_url = module.review_queue.queue_url
-  review_queue_arn = module.review_queue.queue_arn
-
   env = {
     APP_ENV   = local.env
     LOG_LEVEL = "WARNING"
@@ -266,20 +263,45 @@ module "idem" {
   tags          = local.tags
 }
 
-module "pipe_review_to_ecs" {
-  source              = "../modules/pipes_sqs_to_ecs"
+module "sfn_ecs_runner"{
+  source                  = "../modules/sfn_ecs_runner"
 
-  name                = "lara-dev-review-to-ecs"
-  source_queue_arn    = module.review_queue.queue_arn
-  cluster_arn         = module.ecs_review_worker.cluster_arn
-  task_definition_arn = module.ecs_review_worker.task_definition_arn
-  subnet_ids          = module.network.public_subnet_ids
-  security_group_ids  = [module.network.ecs_sg_id]
+  name                    = "${local.name_prefix}-sfn-ecs-runner"
 
-  execution_role_arn = module.ecs_review_worker.execution_role_arn
-  task_role_arn = module.ecs_review_worker.task_role_arn
+  cluster_arn             = module.ecs_review_worker.cluster_arn
+  cluster_name            = module.ecs_review_worker.cluster_name
 
-  assign_public_ip    = local.pipe_sqs_to_ecs_cfg.assign_public_ip
-  batch_size          = local.pipe_sqs_to_ecs_cfg.batch_size
-  container_name      = module.ecs_review_worker.container_name
+
+  task_definition_arn     = module.ecs_review_worker.task_definition_arn
+  subnet_ids              = module.network.public_subnet_ids
+  security_group_ids      = [module.network.ecs_sg_id]
+
+  task_execution_role_arn = module.ecs_review_worker.execution_role_arn
+  task_role_arn           = module.ecs_review_worker.task_role_arn
+  container_name          = module.ecs_review_worker.container_name
+
+
+  assign_public_ip         = local.sfn_ecs_runner_cfg.assign_public_ip  
+  send_to_dlq              = local.sfn_ecs_runner_cfg.send_to_dlq
+
+  review_sqs_dlq_arn = module.review_queue.dlq_arn 
+  review_sqs_dlq_url = module.review_queue.dlq_url 
+
+  review_sqs_arn     = module.review_queue.queue_arn
+  review_sqs_url     = module.review_queue.queue_url 
 }
+
+module "pipe_review_to_sfn" {
+  source              = "../modules/pipes_sqs_to_sfn"
+
+  name                = "${local.name_prefix}-pipe-review_to_sfn"
+
+  source_queue_arn    = module.review_queue.queue_arn
+
+  batch_size          = local.pipe_sqs_to_sfn_cfg.batch_size
+
+  sfn_runner_arn = module.sfn_ecs_runner.sfn_runner_arn
+}
+
+
+
