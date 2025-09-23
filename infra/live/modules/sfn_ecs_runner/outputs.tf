@@ -1,0 +1,1 @@
+output "sfn_runner_arn"  { value = aws_sfn_state_machine.ecs_runner.arn }
