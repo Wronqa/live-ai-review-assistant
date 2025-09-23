@@ -32,14 +32,14 @@ repositories = {
 sqs_defaults = {
   fifo_queue                      = false
   content_based_deduplication     = false
-  visibility_timeout_seconds      = 900
+  visibility_timeout_seconds      = 30
   message_retention_seconds       = 345600   
   dlq_message_retention_seconds   = 1209600  
   dlq_visibility_timeout_seconds  = 30
   delay_seconds                   = 0
   receive_wait_time_seconds       = 10    
   max_message_size                = 262144   
-  max_receive_count               = 5
+  max_receive_count               = 2
 }
 
 queues = {
@@ -96,7 +96,11 @@ network = {
   azs = ["eu-north-1a", "eu-north-1b", "eu-north-1c"]
 }
 
-pipe_sqs_to_ecs = {
+sfn_ecs_runner = {
   assign_public_ip = true
+  send_to_dlq = true
+}
+
+pipe_sqs_to_sfn = {
   batch_size = 1
 }
