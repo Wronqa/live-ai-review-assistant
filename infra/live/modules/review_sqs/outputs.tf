@@ -12,3 +12,9 @@ output "dlq_url" {
   description = "URL of the dead-letter queue (DLQ) for the review SQS queue."
   value       = aws_sqs_queue.dlq.url
 }
+
+
+output "dlq_arn" {
+  description = "URL of the dead-letter queue (DLQ) for the review SQS queue."
+  value       = aws_sqs_queue.dlq.arn
+}
