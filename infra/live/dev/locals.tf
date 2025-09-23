@@ -38,5 +38,7 @@ locals {
 
   network_cfg = var.network
 
-  pipe_sqs_to_ecs_cfg = var.pipe_sqs_to_ecs
+  sfn_ecs_runner_cfg = var.sfn_ecs_runner
+
+  pipe_sqs_to_sfn_cfg = var.pipe_sqs_to_sfn
 }
