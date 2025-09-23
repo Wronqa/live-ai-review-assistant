@@ -3,6 +3,11 @@ output "cluster_arn" {
   value       = aws_ecs_cluster.this.arn
 }
 
+output "cluster_name" {
+  description = "Name of the created ECS cluster."
+  value       = aws_ecs_cluster.this.name
+}
+
 output "task_definition_arn" {
   description = "ARN of the ECS task definition (latest revision)."
   value       = aws_ecs_task_definition.td.arn
